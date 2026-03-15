@@ -1,0 +1,638 @@
+# Day 2 — HashMaps, Linked Lists, Stacks, Queues, Sorting, and Binary Search
+
+## Core Data Structures and Searching Techniques
+
+**What this day covers:** [Hash Maps and Sets](https://www.geeksforgeeks.org/hashing-data-structure/) (O(1) lookup, frequency counting, grouping), [Linked Lists](https://www.geeksforgeeks.org/data-structures/linked-list/) (traversal, reversal, slow/fast pointers, merge), [Stacks](https://www.geeksforgeeks.org/stack-data-structure/) (matching, monotonic stack), [Queues](https://www.geeksforgeeks.org/queue-data-structure/) (BFS, level-by-level processing), Sorting as a preprocessing step, [Binary Search](https://www.geeksforgeeks.org/binary-search/) (standard and on-answer), and Bit Manipulation tricks.
+
+These data structures and techniques come up constantly in interviews. Understanding when and why to reach for each one is just as important as knowing how they work.
+
+---
+
+# Hash Maps and Sets
+
+## What is Hashing?
+
+Hashing is arguably the single most important concept in DSA interviews. A [HashMap](https://www.geeksforgeeks.org/hashing-data-structure/) (dictionary) takes any data and computes a "shelf code" (hash) that maps directly to a memory location.
+
+Think of it like a library where every book has a shelf code. Instead of searching sequentially, you go directly to the right shelf.
+
+<div style="background-color: white; padding: 16px; border-radius: 8px; display: inline-block;">
+
+![Hash Table](https://upload.wikimedia.org/wikipedia/commons/7/7d/Hash_table_3_1_1_0_1_0_0_SP.svg)
+
+</div>
+
+### Key Operations — All O(1) Average
+
+| Operation | HashMap (dict) | HashSet (set) |
+|-----------|----------------|---------------|
+| Insert | `d[key] = val` | `s.add(val)` |
+| Lookup | `key in d` / `d[key]` | `val in s` |
+| Delete | `del d[key]` | `s.remove(val)` |
+
+### When to Use
+
+```
+HashMap: Need to store KEY -> VALUE pairs     (count occurrences, index lookup)
+HashSet: Need to check MEMBERSHIP only       (seen before? duplicate? exists?)
+```
+
+### The Universal HashMap Pattern
+
+> "Am I checking `if X exists` inside a loop? Then use a HashMap to make it O(1)."
+
+```
+Without HashMap: For each element, scan the rest  -> O(n^2)
+With HashMap:    For each element, check the map   -> O(n)
+```
+
+---
+
+## Pattern 7: Frequency Counting and Lookup
+
+### Contains Duplicate ([LeetCode #217](https://leetcode.com/problems/contains-duplicate/)) 
+
+**The Concept:** If the number of unique elements (set size) is less than total elements, duplicates exist.
+
+> **Common Pitfalls:**
+> 1. Using nested loops to check all pairs O(n²) instead of a set/hashmap O(n)
+> 2. Not considering that sorting first is O(n log n) — set approach is cleaner
+
+```python
+def containsDuplicate(nums):
+    return len(nums) != len(set(nums))
+```
+
+### Longest Consecutive Sequence ([LeetCode #128](https://leetcode.com/problems/longest-consecutive-sequence/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/longest-consecutive-sequence.md)
+
+**The Concept:** Only start counting from the beginning of a sequence (where `n-1` is NOT in the set).
+
+> **Common Pitfalls:**
+> 1. Trying to sort first (O(n log n)) when HashSet gives O(n)
+> 2. Not checking `if n - 1 not in s` guard, causing O(n²) for sorted inputs
+
+```python
+def longestConsecutive(nums):
+    s = set(nums)
+    best = 0
+    for n in s:
+        if n - 1 not in s:            # START of a sequence
+            length = 0
+            while n + length in s:
+                length += 1
+            best = max(best, length)
+    return best
+# O(n) -- each number visited at most twice
+```
+
+### Top K Frequent Elements ([LeetCode #347](https://leetcode.com/problems/top-k-frequent-elements/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/top-k-frequent-elements.md)
+
+**The Concept:** Count frequencies with a HashMap, then find the top K. Bucket sort avoids the O(n log n) of a regular sort.
+
+> **Common Pitfalls:**
+> 1. Using a regular sort instead of bucket sort (O(n log n) vs O(n))
+> 2. Not handling the case where multiple numbers have the same frequency
+
+```python
+def topKFrequent(nums, k):
+    count = Counter(nums)
+    # Bucket sort: index = frequency, value = list of numbers
+    buckets = [[] for _ in range(len(nums) + 1)]
+    for num, freq in count.items():
+        buckets[freq].append(num)
+    res = []
+    for freq in range(len(buckets) - 1, -1, -1):
+        for num in buckets[freq]:
+            res.append(num)
+            if len(res) == k: return res
+# O(n) -- no sorting needed!
+```
+
+---
+
+# Linked Lists
+
+## What is a Linked List?
+
+Unlike arrays (contiguous memory), a [linked list](https://www.geeksforgeeks.org/data-structures/linked-list/) stores elements scattered across memory, connected by pointers — each node knows where the next one is.
+
+<div style="background-color: white; padding: 16px; border-radius: 8px; display: inline-block;">
+
+![Linked List](https://upload.wikimedia.org/wikipedia/commons/6/6d/Singly-linked-list.svg)
+
+</div>
+
+```
+Array:   [10][20][30][40]     -> accessed by index (O(1))
+Linked:  10 -> 20 -> 30 -> 40 -> None   -> accessed by walking (O(n))
+```
+
+### Why Use Linked Lists?
+
+| | Array | Linked List |
+|---|-------|-------------|
+| Access by index | O(1) | O(n) |
+| Insert/delete at head | O(n) | O(1) |
+| Insert/delete at known position | O(n) | O(1) |
+| Memory | Fixed block | Scattered, flexible |
+
+### The Node
+
+```python
+class ListNode:
+    def __init__(self, val=0, next=None):
+        self.val = val
+        self.next = next
+```
+
+Visualize linked list operations:
+
+[![Visualize Linked Lists](https://img.shields.io/badge/▶_Visualize_Linked_Lists-VisuAlgo-007EC6?style=for-the-badge)](https://visualgo.net/en/list)
+
+---
+
+## Pattern 8: Slow and Fast Pointers (Floyd's Tortoise and Hare)
+
+### The Core Idea
+
+> "Two pointers at different speeds: fast reaches the end in half the time, so slow is at the middle. On a cycle, fast laps slow, so a cycle is detected."
+
+
+### Middle of Linked List ([LeetCode #876](https://leetcode.com/problems/middle-of-the-linked-list/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/middle-of-the-linked-list.md)
+
+**The Concept:** Slow moves 1 step, fast moves 2 steps. When fast reaches the end, slow is at the middle.
+
+> **Common Pitfalls:**
+> 1. Incorrect loop condition: must check `fast and fast.next` (not just `fast.next`)
+> 2. For even-length lists, this returns the second middle node — clarify which is expected
+
+```python
+def middleNode(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+    return slow
+```
+
+### Linked List Cycle ([LeetCode #141](https://leetcode.com/problems/linked-list-cycle/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/linked-list-cycle.md)
+
+**The Concept:** If there's a cycle, the fast pointer will eventually catch up to the slow pointer — like two runners on a circular track.
+
+> **Common Pitfalls:**
+> 1. Comparing `slow == fast` before moving them (they start at the same position!)
+> 2. Not handling edge cases: empty list or single node
+
+```python
+def hasCycle(head):
+    slow = fast = head
+    while fast and fast.next:
+        slow = slow.next
+        fast = fast.next.next
+        if slow == fast: return True
+    return False
+```
+
+---
+
+## Pattern 9: Reverse a Linked List — The 3-Pointer Technique
+
+### The Core Idea
+
+> "Walk through the list, reversing each arrow to point backwards. Need three pointers: where you came from (prev), where you are (curr), where you're going (nxt)."
+
+### Reverse Linked List ([LeetCode #206](https://leetcode.com/problems/reverse-linked-list/)) — Top 5 Interview Question | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/reverse-linked-list.md)
+
+<div style="background-color: white; padding: 16px; border-radius: 8px; display: inline-block;">
+
+![Linked List Reversal](images/linked-list-reversal.png)
+
+</div>
+
+*Three pointers (prev, curr, next) flip each arrow one at a time*
+
+> **Common Pitfalls:**
+> 1. Forgetting to save `curr.next` before overwriting it
+> 2. Returning `curr` instead of `prev` at the end (curr is None when loop finishes)
+
+```
+Reverse Linked List Step-by-Step:
+
+prev=None  curr=1->2->3->None
+Step 1: save nxt=2, point 1->None,  prev=1, curr=2
+Step 2: save nxt=3, point 2->1,     prev=2, curr=3
+Step 3: save nxt=None, point 3->2,  prev=3, curr=None -> done!
+Result: 3->2->1->None
+```
+
+```python
+def reverseList(head):
+    prev = None
+    curr = head
+    while curr:
+        nxt = curr.next     # 1. SAVE
+        curr.next = prev    # 2. REVERSE
+        prev = curr         # 3. ADVANCE
+        curr = nxt
+    return prev
+# O(n) time, O(1) space -- MEMORIZE THIS
+```
+
+### Merge Two Sorted Lists ([LeetCode #21](https://leetcode.com/problems/merge-two-sorted-lists/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/merge-two-sorted-lists.md)
+
+**Key technique — Dummy Node:** Creates a fake start node to simplify edge cases.
+
+> **Common Pitfalls:**
+> 1. Forgetting to handle remaining nodes when one list is exhausted
+> 2. Not using a dummy node, leading to complex head-initialization logic
+
+```python
+def mergeTwoLists(l1, l2):
+    dummy = curr = ListNode(0)
+    while l1 and l2:
+        if l1.val <= l2.val:
+            curr.next = l1; l1 = l1.next
+        else:
+            curr.next = l2; l2 = l2.next
+        curr = curr.next
+    curr.next = l1 or l2
+    return dummy.next
+```
+
+### Reorder List ([LeetCode #143](https://leetcode.com/problems/reorder-list/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/reorder-list.md)
+
+**The Concept:** Combines three linked list patterns in one problem:
+
+> **Common Pitfalls:**
+> 1. Not properly cutting the list in half (must set `slow.next = None`)
+> 2. Off-by-one in the interleaving step
+1. Find middle (slow/fast)
+2. Reverse second half (3-pointer)
+3. Interleave the two halves
+
+```python
+def reorderList(head):
+    # 1. Find middle
+    slow = fast = head
+    while fast.next and fast.next.next:
+        slow = slow.next; fast = fast.next.next
+    # 2. Reverse second half
+    prev, curr = None, slow.next
+    slow.next = None
+    while curr:
+        nxt = curr.next; curr.next = prev; prev = curr; curr = nxt
+    # 3. Interleave
+    first, second = head, prev
+    while second:
+        tmp1, tmp2 = first.next, second.next
+        first.next = second; second.next = tmp1
+        first, second = tmp1, tmp2
+```
+
+**Linked List Recipe:** Find middle, reverse half, merge or compare.
+
+---
+
+# Stacks and Queues
+
+## What Are Stacks and Queues?
+
+Both are restricted access data structures — you can only add or remove from specific ends.
+
+### Stack = LIFO (Last In, First Out)
+
+<div style="background-color: white; padding: 16px; border-radius: 8px; display: inline-block;">
+
+![Stack](https://upload.wikimedia.org/wikipedia/commons/e/e4/Lifo_stack.svg)
+
+</div>
+
+**Analogy:** Stack of plates — add and remove from the top only.
+
+**Used for:** Undo operations, matching brackets, DFS, expression evaluation, function call stack.
+
+### Queue = FIFO (First In, First Out)
+
+<div style="background-color: white; padding: 16px; border-radius: 8px; display: inline-block;">
+
+![Queue](https://upload.wikimedia.org/wikipedia/commons/5/52/Data_Queue.svg)
+
+</div>
+
+**Analogy:** Line at a theater — first person in line is served first.
+
+**Used for:** BFS traversal, task scheduling, level-by-level processing.
+
+```python
+# Stack -- Python list
+stack = []
+stack.append(x)   # push O(1)
+stack.pop()       # pop O(1)
+stack[-1]         # peek O(1)
+
+# Queue -- ALWAYS use deque (list.pop(0) is O(n)!)
+from collections import deque
+q = deque()
+q.append(x)       # enqueue O(1)
+q.popleft()       # dequeue O(1)
+```
+
+---
+
+## Pattern 10: Stack for Matching and Nesting
+
+### The Core Idea
+
+> "When you see an opening element, push it. When you see a closing element, pop and check if they match. Stacks naturally handle nesting."
+
+### Valid Parentheses ([LeetCode #20](https://leetcode.com/problems/valid-parentheses/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/valid-parentheses.md)
+
+**The Concept:** Push opening brackets, pop on closing brackets. If the popped bracket doesn't match the closing one, it's invalid.
+
+> **Common Pitfalls:**
+> 1. Forgetting to check if the stack is empty before popping
+> 2. Not checking the stack is empty at the end (unmatched opening brackets)
+
+```python
+def isValid(s):
+    stack = []
+    match = {')':'(', '}':'{', ']':'['}
+    for c in s:
+        if c in '({[':
+            stack.append(c)
+        elif not stack or stack.pop() != match[c]:
+            return False
+    return not stack
+```
+
+---
+
+## Pattern 11: Monotonic Stack — "Next Greater Element"
+
+### The Core Idea
+
+> "Maintain a stack in decreasing order. When a bigger element arrives, pop — the popped element just found its answer."
+
+**Why O(n)?** Each element is pushed at most once and popped at most once, giving O(2n) = O(n) total.
+
+<div style="background-color: white; padding: 16px; border-radius: 8px; display: inline-block;">
+
+![Monotonic Stack](images/monotonic-stack.png)
+
+</div>
+
+*When a bigger element arrives, pop smaller elements — they just found their "next greater"*
+
+### Daily Temperatures ([LeetCode #739](https://leetcode.com/problems/daily-temperatures/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/daily-temperatures.md)
+
+**The Concept:** For each day, find how many days until a warmer temperature. A monotonic decreasing stack of indices solves this: when a warmer day arrives, pop and record the gap.
+
+> **Common Pitfalls:**
+> 1. Pushing temperatures instead of indices onto the stack
+> 2. Forgetting to initialize the result array with zeros
+
+```python
+def dailyTemperatures(temps):
+    n = len(temps)
+    res = [0] * n
+    stack = []
+    for i in range(n):
+        while stack and temps[i] > temps[stack[-1]]:
+            j = stack.pop()
+            res[j] = i - j
+        stack.append(i)
+    return res
+# O(n)
+```
+
+### Largest Rectangle in Histogram ([LeetCode #84](https://leetcode.com/problems/largest-rectangle-in-histogram/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/largest-rectangle-in-histogram.md)
+
+**The Concept:** Monotonic increasing stack of indices. When a shorter bar arrives, pop and calculate the area using popped bar's height × width between boundaries.
+
+> **Common Pitfalls:**
+> 1. Not appending a 0-height sentinel at the end to flush remaining bars from the stack
+> 2. Incorrect width calculation: `width = i - stack[-1] - 1` (not `i - popped_index`)
+
+```python
+def largestRectangleArea(heights):
+    stack, best = [], 0
+    for i in range(len(heights) + 1):
+        h = heights[i] if i < len(heights) else 0
+        while stack and heights[stack[-1]] > h:
+            height = heights[stack.pop()]
+            width = i if not stack else i - stack[-1] - 1
+            best = max(best, height * width)
+        stack.append(i)
+    return best
+```
+
+### Min Stack ([LeetCode #155](https://leetcode.com/problems/min-stack/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/min-stack.md)
+
+**The Concept:** Store `(value, current_min)` pairs so getMin is always O(1).
+
+> **Common Pitfalls:**
+> 1. Not updating min on every push (must recompute min at each level)
+> 2. Using a separate min variable that doesn't restore on pop
+
+```python
+class MinStack:
+    def __init__(self):
+        self.stack = []
+    def push(self, val):
+        mn = min(val, self.stack[-1][1]) if self.stack else val
+        self.stack.append((val, mn))
+    def pop(self): self.stack.pop()
+    def top(self): return self.stack[-1][0]
+    def getMin(self): return self.stack[-1][1]
+```
+
+---
+
+# Sorting and Binary Search
+
+## Why Sorting Matters
+
+You rarely implement sorts yourself, but sorting as a preprocessing step unlocks many techniques:
+
+<div style="background-color: white; padding: 16px; border-radius: 8px; display: inline-block;">
+
+![Merge Sort](https://upload.wikimedia.org/wikipedia/commons/c/cc/Merge-sort-example-300px.gif)
+
+</div>
+
+*Merge Sort — divide, sort halves, merge back together (O(n log n))*
+
+<div style="background-color: white; padding: 16px; border-radius: 8px; display: inline-block;">
+
+![Insertion Sort](https://upload.wikimedia.org/wikipedia/commons/0/0f/Insertion-sort-example-300px.gif)
+
+</div>
+
+*Insertion Sort — insert each element into its correct position (O(n²))*
+
+```
+Sorted -> Binary Search      O(n log n + log n)
+Sorted -> Two Pointers       O(n log n + n)
+Sorted -> Merge Intervals    O(n log n + n)
+Sorted -> Greedy decisions   O(n log n + n)
+Sorted -> Duplicates adjacent
+```
+
+### Dutch National Flag — Sort 0s, 1s, 2s in One Pass ([LeetCode #75](https://leetcode.com/problems/sort-colors/))  | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/sort-colors.md)
+
+**The Concept:** Three pointers (lo, mid, hi) partition the array into regions of 0s, 1s, and 2s in a single pass.
+
+> **Common Pitfalls:**
+> 1. Incrementing `mid` after swapping with `hi` (the swapped element hasn't been checked yet!)
+> 2. Not understanding why `lo` swap increments both `lo` and `mid` but `hi` swap doesn't increment `mid`
+
+```python
+def sortColors(nums):
+    lo, mid, hi = 0, 0, len(nums) - 1
+    while mid <= hi:
+        if   nums[mid] == 0: nums[lo], nums[mid] = nums[mid], nums[lo]; lo += 1; mid += 1
+        elif nums[mid] == 1: mid += 1
+        else:                nums[mid], nums[hi] = nums[hi], nums[mid]; hi -= 1
+```
+
+### Merge Intervals ([LeetCode #56](https://leetcode.com/problems/merge-intervals/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/merge-intervals.md)
+
+**The Concept:** Sort intervals by start. Iterate and merge overlapping intervals by extending the end.
+
+> **Common Pitfalls:**
+> 1. Not sorting by start time first
+> 2. Using `==` instead of `<=` to check overlap (intervals `[1,3]` and `[3,5]` DO overlap)
+
+```python
+def merge(intervals):
+    intervals.sort()
+    res = [intervals[0]]
+    for s, e in intervals[1:]:
+        if s <= res[-1][1]: res[-1][1] = max(res[-1][1], e)
+        else: res.append([s, e])
+    return res
+```
+
+---
+
+## Pattern 12: Binary Search — Halve the Search Space
+
+### The Core Idea
+
+> "If you can determine which half contains the answer, throw away the other half. Repeat. O(log n)."
+
+<div style="background-color: white; padding: 16px; border-radius: 8px; display: inline-block;">
+
+![Binary Search](https://upload.wikimedia.org/wikipedia/commons/8/83/Binary_Search_Depiction.svg)
+
+</div>
+
+> 🔗 **Simulate:** [Binary Search step-by-step on VisuAlgo](https://visualgo.net/en/sorting)
+
+### Standard Binary Search
+
+**The Concept:** Compare target with the middle element. Eliminate the half where target can't be.
+
+```python
+def binary_search(arr, target):
+    lo, hi = 0, len(arr) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if   arr[mid] == target: return mid
+        elif arr[mid] < target:  lo = mid + 1
+        else:                    hi = mid - 1
+    return -1
+```
+
+### Search in Rotated Sorted Array ([LeetCode #33](https://leetcode.com/problems/search-in-rotated-sorted-array/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/search-in-rotated-sorted-array.md)
+
+**The Concept:** At any mid, one half is always sorted. Check if target is in the sorted half.
+
+> **Common Pitfalls:**
+> 1. Using `<` instead of `<=` for boundary checks
+> 2. Not correctly identifying which half is sorted (check `nums[lo] <= nums[mid]`)
+
+```python
+def search(nums, target):
+    lo, hi = 0, len(nums) - 1
+    while lo <= hi:
+        mid = (lo + hi) // 2
+        if nums[mid] == target: return mid
+        if nums[lo] <= nums[mid]:
+            if nums[lo] <= target < nums[mid]: hi = mid - 1
+            else: lo = mid + 1
+        else:
+            if nums[mid] < target <= nums[hi]: lo = mid + 1
+            else: hi = mid - 1
+    return -1
+```
+
+### Binary Search on Answer
+
+> "Instead of searching an array, search the range of possible answers."
+
+### Koko Eating Bananas ([LeetCode #875](https://leetcode.com/problems/koko-eating-bananas/)) | [Solution](https://github.com/AlgoMaster-io/leetcode-solutions/blob/main/python/koko-eating-bananas.md)
+
+**The Concept:** Binary search on the answer — search the range of possible eating speeds [1, max(piles)] and check feasibility.
+
+> **Common Pitfalls:**
+> 1. Using `lo <= hi` instead of `lo < hi` (this is a boundary-type binary search)
+> 2. Forgetting to use `math.ceil` for division (each pile takes at least 1 hour)
+
+```python
+import math
+def minEatingSpeed(piles, h):
+    lo, hi = 1, max(piles)
+    while lo < hi:
+        mid = (lo + hi) // 2
+        if sum(math.ceil(p / mid) for p in piles) <= h:
+            hi = mid
+        else:
+            lo = mid + 1
+    return lo
+```
+
+---
+
+
+
+# Day 2 Summary — 6 Patterns + Key Techniques
+
+| # | Pattern | Core Insight | Key Problem |
+|---|---------|-------------|-------------|
+| 7 | **HashMap Lookup** | O(1) existence check | Two Sum #1, Consecutive #128 |
+| 8 | **Slow/Fast Pointers** | Cycle, middle detection | Cycle #141, Middle #876 |
+| 9 | **Reverse LL** | Save, Reverse, Advance | Reverse LL #206 |
+| 10 | **Stack Matching** | Push open, pop close | Valid Parentheses #20 |
+| 11 | **Monotonic Stack** | Next greater/smaller | Daily Temps #739 |
+| 12 | **Binary Search** | Halve the search space | Rotated Array #33, Koko #875 |
+
+### [Practice Problems for Day 2](Day%202_practice.md)
+
+```
+Easy:
+  #206  Reverse Linked List
+  #20   Valid Parentheses
+  #217  Contains Duplicate
+  #141  Linked List Cycle
+  #704  Binary Search
+  #136  Single Number
+
+Medium:
+  #128  Longest Consecutive Sequence
+  #347  Top K Frequent Elements
+  #739  Daily Temperatures
+  #143  Reorder List
+  #21   Merge Two Sorted Lists
+  #33   Search in Rotated Sorted Array
+  #56   Merge Intervals
+  #75   Sort Colors
+  #875  Koko Eating Bananas
+
+Hard:
+  #84   Largest Rectangle in Histogram
+```
+
+---
+
+*Next: Recursion, Backtracking, Trees, and Heaps — [Day 3](Day%203%20%20%E2%80%94%20Recursion,%20Backtracking,%20Trees,%20BST,%20and%20Heaps.md)*
