@@ -2,7 +2,7 @@
 
 ## Core Data Structures and Searching Techniques
 
-**What this day covers:** [Hash Maps and Sets](https://www.geeksforgeeks.org/hashing-data-structure/) (O(1) lookup, frequency counting, grouping), [Linked Lists](https://www.geeksforgeeks.org/data-structures/linked-list/) (traversal, reversal, slow/fast pointers, merge), [Stacks](https://www.geeksforgeeks.org/stack-data-structure/) (matching, monotonic stack), [Queues](https://www.geeksforgeeks.org/queue-data-structure/) (BFS, level-by-level processing), Sorting as a preprocessing step, [Binary Search](https://www.geeksforgeeks.org/binary-search/) (standard and on-answer), and Bit Manipulation tricks.
+**What this day covers:** [Hash Maps and Sets](https://www.geeksforgeeks.org/hashing-data-structure/) (O(1) lookup, frequency counting, grouping), [Linked Lists](https://www.geeksforgeeks.org/data-structures/linked-list/) (traversal, reversal, slow/fast pointers, merge), [Stacks](https://www.geeksforgeeks.org/stack-data-structure/) (matching, monotonic stack), [Queues](https://www.geeksforgeeks.org/queue-data-structure/) (BFS, level-by-level processing), Sorting as a preprocessing step, [Binary Search](https://www.geeksforgeeks.org/binary-search/) (standard and on-answer).
 
 These data structures and techniques come up constantly in interviews. Understanding when and why to reach for each one is just as important as knowing how they work.
 
